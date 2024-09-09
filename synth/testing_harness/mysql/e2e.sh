@@ -85,7 +85,7 @@ function test-warning() {
 
   docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" <"$folder/schema.sql"
   output=$($SYNTH generate --size 10 --to mysql://root:${PASSWORD}@localhost:${PORT}/test_db "$folder" 2>&1)
-  warnings=$(echo "$output" | grep "WARN" | ggrep -Po "(?<=\]\s).*$")
+  warnings=$(echo "$output" | grep "WARN" | grep -Po "(?<=\]\s).*$")
 
   if [ -z "$warnings" ]; then
     echo -e "${ERROR}[$folder] did not produce any warnings${NC}"

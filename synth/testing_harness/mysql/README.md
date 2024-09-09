@@ -1,11 +1,17 @@
 Integration Tests for MySql
 ====================================
 
-This is an integration test that validates the synth generate and synth import commands for MySql on a Debian flavored 
+This is an integration test that validates the synth generate and synth import commands for MySql on a Debian flavored
 OS. The models in hospital_master are used as a known "golden" set to validate against. The *.sql scripts generate the
 schema and test data within the database.
 
-# Requirements:
+## Note if running locally on Mac OS
+
+`./e2e.sh` assumes the use of the GNU variant of `grep`, specifically in its use of `-P` for PCRE flavored regex.
+You will need to run `brew install grep`, and then alter the script to use `ggrep` command instead of the built-in BSD `grep`.
+
+# Requirements
+
 - Docker
 - jq
 
