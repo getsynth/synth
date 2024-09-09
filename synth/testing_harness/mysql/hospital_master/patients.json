@@ -52,7 +52,25 @@
             "low": 1,
             "high": 20
           },
-          "subtype": "i64"
+          "subtype": "i32"
+        },
+        {
+          "weight": 1.0,
+          "type": "null"
+        }
+      ]
+    },
+    "freckles": {
+      "type": "one_of",
+      "variants": [
+        {
+          "weight": 1.0,
+          "type": "number",
+          "range": {
+            "low": -93,
+            "high": 121
+          },
+          "subtype": "i8"
         },
         {
           "weight": 1.0,
@@ -63,7 +81,7 @@
     "id": {
       "type": "number",
       "id": {},
-      "subtype": "i64"
+      "subtype": "i32"
     },
     "name": {
       "type": "one_of",

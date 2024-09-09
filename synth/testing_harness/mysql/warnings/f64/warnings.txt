@@ -1,1 +1,1 @@
-Trying to put a f64 into a float typed column f32.float
+Trying to put a f64 into a float typed column f64.float

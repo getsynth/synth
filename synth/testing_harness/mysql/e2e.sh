@@ -3,14 +3,14 @@
 set -uo pipefail
 
 # load env vars
-if [ -f .env ]
-then
+if [ -f .env ]; then
   set -a
   . .env
   set +a
 fi
 
-SYNTH="synth"
+#SYNTH="synth"
+SYNTH="/Users/tomgoren/tmp/synth/target/debug/synth"
 [ "${CI-false}" == "true" ] || SYNTH="cargo run --quiet --bin synth"
 
 ERROR='\033[0;31m'
@@ -35,31 +35,45 @@ commands:
 }
 
 function load-schema() {
-  docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" < 0_hospital_schema.sql || return 1
-  [ ${1} == "--no-data" ] || docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" < 1_hospital_data.sql || return 1
+  docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" <0_hospital_schema.sql || return 1
+  [ ${1} == "--no-data" ] || docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" <1_hospital_data.sql || return 1
 }
 
 function test-generate() {
   echo -e "${INFO}Test generate${NC}"
-  load-schema --no-data || { echo -e "${ERROR}Failed to load schema${NC}"; return 1; }
+  load-schema --no-data || {
+    echo -e "${ERROR}Failed to load schema${NC}"
+    return 1
+  }
   $SYNTH generate hospital_master --to mysql://root:${PASSWORD}@localhost:${PORT}/test_db --size 30 || return 1
 
   sum_rows_query="SELECT (SELECT count(*) FROM hospitals) +  (SELECT count(*) FROM doctors) + (SELECT count(*) FROM patients)"
-  sum=`docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" -e "$sum_rows_query" | grep -o '[[:digit:]]*'`
-  [ "$sum" -gt "30" ] || { echo -e "${ERROR}Generation did not create more than 30 records${NC}"; return 1; }
+  sum=$(docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" -e "$sum_rows_query" | grep -o '[[:digit:]]*')
+  [ "$sum" -gt "30" ] || {
+    echo -e "${ERROR}Generation did not create more than 30 records${NC}"
+    return 1
+  }
 }
 
 function test-import() {
   echo -e "${INFO}Testing import${NC}"
-  load-schema --all || { echo -e "${ERROR}Failed to load schema${NC}"; return 1; }
-  $SYNTH import --from mysql://root:${PASSWORD}@localhost:${PORT}/test_db hospital_import || { echo -e "${ERROR}Import failed${NC}"; return 1; }
-  diff <(jq --sort-keys . hospital_import/*) <(jq --sort-keys . hospital_master/*) || { echo -e "${ERROR}Import namespaces do not match${NC}"; return 1; }
+  load-schema --all || {
+    echo -e "${ERROR}Failed to load schema${NC}"
+    return 1
+  }
+  $SYNTH import --from mysql://root:${PASSWORD}@localhost:${PORT}/test_db hospital_import || {
+    echo -e "${ERROR}Import failed${NC}"
+    return 1
+  }
+  diff <(jq --sort-keys . hospital_import/*) <(jq --sort-keys . hospital_master/*) || {
+    echo -e "${ERROR}Import namespaces do not match${NC}"
+    return 1
+  }
 }
 
 function test-warnings() {
   result=0
-  for d in warnings/*/
-  do
+  for d in warnings/*/; do
     test-warning $d || result=$?
   done
 }
@@ -69,18 +83,20 @@ function test-warning() {
 
   echo -e "${INFO}[$folder] Testing warning${NC}"
 
-  docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" < "$folder/schema.sql"
+  docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" <"$folder/schema.sql"
   output=$($SYNTH generate --size 10 --to mysql://root:${PASSWORD}@localhost:${PORT}/test_db "$folder" 2>&1)
-  warnings=$(echo "$output" | grep "WARN" | grep -Po "(?<=\]\s).*$")
+  warnings=$(echo "$output" | grep "WARN" | ggrep -Po "(?<=\]\s).*$")
 
-  if [ -z "$warnings" ]
-  then
+  if [ -z "$warnings" ]; then
     echo -e "${ERROR}[$folder] did not produce any warnings${NC}"
     echo -e "${DEBUG}$output${NC}"
     return 1
   fi
 
-  diff <(echo "$warnings") "$folder/warnings.txt" || { echo -e "${ERROR}[$folder] warnings do not match${NC}"; return 1; }
+  diff <(echo "$warnings") "$folder/warnings.txt" || {
+    echo -e "${ERROR}[$folder] warnings do not match${NC}"
+    return 1
+  }
 }
 
 function test-local() {
@@ -102,11 +118,10 @@ function test-local() {
 function up() {
   echo -e "${DEBUG}Starting container${NC}"
   echo -e "${DEBUG}Running database with container name $NAME on port $PORT with password $PASSWORD${NC}"
-  docker run --rm --name $NAME -p $PORT:3306 -e MYSQL_ROOT_PASSWORD=$PASSWORD -e MYSQL_DATABASE="test_db" -d $SCHEME > /dev/null
+  docker run --rm --name $NAME -p $PORT:3306 -e MYSQL_ROOT_PASSWORD=$PASSWORD -e MYSQL_DATABASE="test_db" -d $SCHEME >/dev/null
 
   wait_count=0
-  while ! docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" -e "SELECT 1" > /dev/null 2>&1
-  do
+  while ! docker exec -i $NAME $SCHEME -h 127.0.0.1 -u root --password=$PASSWORD -P 3306 "test_db" -e "SELECT 1" >/dev/null 2>&1; do
     range=$(printf "%${wait_count}s")
     echo -en "\\r${DEBUG}Waiting for DB to come up${range// /.}${NC}"
     wait_count=$((wait_count + 1))
@@ -117,8 +132,8 @@ function up() {
 
 function down() {
   echo -e "${DEBUG}Stopping container${NC}"
-  docker stop $NAME > /dev/null
-  docker rm $NAME > /dev/null
+  docker stop $NAME >/dev/null
+  docker rm $NAME >/dev/null
 }
 
 function cleanup() {
@@ -128,34 +143,35 @@ function cleanup() {
 }
 
 case "${1-*}" in
-  load-schema)
-    load-schema ${2---all} || exit 1
-    ;;
-  test-generate)
-    test-generate || exit 1
-    ;;
-  test-import)
-    test-import || exit 1
-    ;;
-  test-warnings)
-    test-warnings || exit 1
-    ;;
-  test-warning)
-    test-warning "warnings/$2" || exit 1
-    ;;
-  test-local)
-    test-local || exit 1
-    ;;
-  up)
-    up
-    ;;
-  down)
-    down
-    ;;
-  cleanup)
-    cleanup
-    ;;
-  *)
-    help $0
-    exit 1
+load-schema)
+  load-schema ${2---all} || exit 1
+  ;;
+test-generate)
+  test-generate || exit 1
+  ;;
+test-import)
+  test-import || exit 1
+  ;;
+test-warnings)
+  test-warnings || exit 1
+  ;;
+test-warning)
+  test-warning "warnings/$2" || exit 1
+  ;;
+test-local)
+  test-local || exit 1
+  ;;
+up)
+  up
+  ;;
+down)
+  down
+  ;;
+cleanup)
+  cleanup
+  ;;
+*)
+  help $0
+  exit 1
+  ;;
 esac

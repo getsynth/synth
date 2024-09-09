@@ -38,7 +38,7 @@
             "low": 1,
             "high": 14
           },
-          "subtype": "i64"
+          "subtype": "i32"
         },
         {
           "weight": 1.0,
@@ -49,7 +49,7 @@
     "id": {
       "type": "number",
       "id": {},
-      "subtype": "i64"
+      "subtype": "i32"
     },
     "name": {
       "type": "one_of",

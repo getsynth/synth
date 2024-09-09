@@ -27,5 +27,6 @@ create table patients
     date_joined date,
     address     varchar(255),
     phone       varchar(20),
-    ssn         varchar(12)
+    ssn         varchar(12),
+    freckles    tinyint
 );
