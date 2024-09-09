@@ -97,12 +97,6 @@ impl SqlxDataSource for MySqlDataSource {
                     RegexContent::pattern(pattern).context("pattern will always compile")?,
                 ))
             }
-        // "tinyint" => Value::Number(Number::from(row.try_get::<i8, &str>(column.name())?)),
-        // "smallint" => Value::Number(Number::from(row.try_get::<i16, &str>(column.name())?)),
-        // "mediumint" | "int" | "integer" => {
-        //     Value::Number(Number::from(row.try_get::<i32, &str>(column.name())?))
-        // }
-        // "bigint" => Value::Number(Number::from(row.try_get::<i64, &str>(column.name())?)),
             "int" | "integer" | "mediumint"  => {
                 Content::Number(NumberContent::I32(I32::Range(RangeStep::default())))
             }
