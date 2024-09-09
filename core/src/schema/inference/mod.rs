@@ -15,7 +15,7 @@ use super::{
     Content, DateTimeContent, Id, NumberContent, NumberKindExt, ObjectContent, OneOfContent,
     RangeStep, StringContent, ValueKindExt,
 };
-use crate::graph::prelude::content::number_content::{I16, I32, I64};
+use crate::graph::prelude::content::number_content::{I8, I16, I32, I64};
 use crate::schema::UniqueContent;
 use num::Zero;
 
@@ -335,6 +335,17 @@ impl MergeStrategy<number_content::I16, i16> for OptionalMergeStrategy {
     }
 }
 
+impl MergeStrategy<number_content::I8, i8> for OptionalMergeStrategy {
+    fn try_merge(self, master: &mut number_content::I8, candidate: &i8) -> Result<()> {
+        match master {
+            number_content::I8::Range(range) => self.try_merge(range, candidate),
+            number_content::I8::Categorical(cat) => self.try_merge(cat, candidate),
+            number_content::I8::Constant(cst) => self.try_merge(cst, candidate),
+            I8::Id(id) => self.try_merge(id, candidate),
+        }
+    }
+}
+
 impl MergeStrategy<NumberContent, Number> for OptionalMergeStrategy {
     fn try_merge(self, master: &mut NumberContent, value: &Number) -> Result<()> {
         match master {
@@ -379,6 +390,13 @@ impl MergeStrategy<NumberContent, Number> for OptionalMergeStrategy {
             NumberContent::F32(f32_content) => {
                 if let Some(n) = value.as_f64() {
                     self.try_merge(f32_content, &(n as f32))
+                } else {
+                    todo!()
+                }
+            }
+            NumberContent::I8(i8_content) => {
+                if let Some(n) = value.as_i64() {
+                    self.try_merge(i8_content, &(n as i8))
                 } else {
                     todo!()
                 }

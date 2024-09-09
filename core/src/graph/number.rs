@@ -51,6 +51,7 @@ macro_rules! any_range_int_impl {
     }
 }
 
+any_range_int_impl! { u8 }
 any_range_int_impl! { u16 }
 any_range_int_impl! { u32 }
 any_range_int_impl! { u64 }
@@ -219,6 +220,7 @@ macro_rules! standard_int_range_step_impl {
     }
 }
 
+standard_int_range_step_impl! { i8, i16, u8}
 standard_int_range_step_impl! { i16, i32, u16}
 standard_int_range_step_impl! { i32, i64, u32 }
 standard_int_range_step_impl! { u32, u32, u32 }
@@ -480,6 +482,12 @@ number_node!(
         I16Categorical as categorical,
         Incrementing as incrementing,
     ) for i16,
+    RandomI8 (
+        I8Range<StandardIntRangeStep<u8, i16>> as range,
+        I8Constant as constant,
+        I8Categorical as categorical,
+        Incrementing as incrementing,
+    ) for i8,
 );
 
 #[cfg(test)]

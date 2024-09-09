@@ -10,7 +10,7 @@ use rust_decimal::Decimal;
 use sqlx::mysql::{MySqlColumn, MySqlPoolOptions, MySqlRow};
 use sqlx::{Column, MySql, Pool, Row, TypeInfo};
 use std::collections::BTreeMap;
-use synth_core::schema::number_content::{F64, I64, U64};
+use synth_core::schema::number_content::{F64, I8, I16, I32, I64, U64};
 use synth_core::schema::{
     ChronoValueType, DateTimeContent, NumberContent, RangeStep, RegexContent, StringContent,
 };
@@ -97,7 +97,22 @@ impl SqlxDataSource for MySqlDataSource {
                     RegexContent::pattern(pattern).context("pattern will always compile")?,
                 ))
             }
-            "int" | "integer" | "tinyint" | "smallint" | "mediumint" | "bigint" => {
+        // "tinyint" => Value::Number(Number::from(row.try_get::<i8, &str>(column.name())?)),
+        // "smallint" => Value::Number(Number::from(row.try_get::<i16, &str>(column.name())?)),
+        // "mediumint" | "int" | "integer" => {
+        //     Value::Number(Number::from(row.try_get::<i32, &str>(column.name())?))
+        // }
+        // "bigint" => Value::Number(Number::from(row.try_get::<i64, &str>(column.name())?)),
+            "int" | "integer" | "mediumint"  => {
+                Content::Number(NumberContent::I32(I32::Range(RangeStep::default())))
+            }
+            "tinyint" => {
+                Content::Number(NumberContent::I8(I8::Range(RangeStep::default())))
+            }
+            "smallint" => {
+                Content::Number(NumberContent::I16(I16::Range(RangeStep::default())))
+            }
+            "bigint" => {
                 Content::Number(NumberContent::I64(I64::Range(RangeStep::default())))
             }
             "serial" => Content::Number(NumberContent::U64(U64::Range(RangeStep::default()))),

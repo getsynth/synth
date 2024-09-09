@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use super::Categorical;
 
-use crate::graph::number::{RandomF32, RandomI16, RandomI32, RandomU32};
+use crate::graph::number::{RandomF32, RandomI8, RandomI16, RandomI32, RandomU32};
 use serde::{ser::Serializer, Serialize};
 
 #[derive(Clone, Copy)]
@@ -205,6 +205,7 @@ impl NumberContent {
         match self {
             NumberContent::U32(_) => Ok(Self::u32_default_id()),
             NumberContent::U64(_) => Ok(Self::u64_default_id()),
+            NumberContent::I8(_) => Ok(Self::i8_default_id()),
             NumberContent::I16(_) => Ok(Self::i16_default_id()),
             NumberContent::I32(_) => Ok(Self::i32_default_id()),
             NumberContent::I64(_) => Ok(Self::i64_default_id()),
@@ -219,6 +220,10 @@ impl NumberContent {
 
     pub fn u64_default_id() -> Self {
         NumberContent::U64(number_content::U64::Id(Id::default()))
+    }
+
+    pub fn i8_default_id() -> Self {
+        NumberContent::I8(number_content::I8::Id(Id::default()))
     }
 
     pub fn i16_default_id() -> Self {
@@ -372,7 +377,7 @@ macro_rules! derive_hash {
     };
 }
 
-derive_hash!(i16, i32, u32, i64, u64, f32, f64);
+derive_hash!(i8, i16, i32, u32, i64, u64, f32, f64);
 
 number_content!(
     #[derive(PartialEq, Hash)]
@@ -388,6 +393,13 @@ number_content!(
         Categorical(Categorical<u64>),
         Constant(u64),
         Id(crate::schema::Id<u64>),
+    },
+    #[derive(PartialEq, Hash)]
+    i8[is_i8, default_i8_range] as I8 {
+        Range(RangeStep<i8>),
+        Categorical(Categorical<i8>),
+        Constant(i8),
+        Id(crate::schema::Id<i8>),
     },
     #[derive(PartialEq, Hash)]
     i16[is_i16, default_i16_range] as I16 {
@@ -489,6 +501,19 @@ impl Compile for NumberContent {
                     number_content::F32::Constant(val) => RandomF32::constant(*val),
                 };
                 random_f32.into()
+            }
+            Self::I8(i8_content) => {
+                let random_i8 = match i8_content {
+                    number_content::I8::Range(range) => RandomI8::range(*range)?,
+                    number_content::I8::Categorical(categorical_content) => {
+                        RandomI8::categorical(categorical_content.clone())
+                    }
+                    number_content::I8::Constant(val) => RandomI8::constant(*val),
+                    number_content::I8::Id(id) => {
+                        RandomI8::incrementing(Incrementing::new_at(id.start_at.unwrap_or(1)))
+                    }
+                };
+                random_i8.into()
             }
             Self::I16(i16_content) => {
                 let random_i16 = match i16_content {

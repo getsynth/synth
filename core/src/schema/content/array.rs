@@ -112,6 +112,15 @@ impl<'de> Deserialize<'de> for ArrayContent {
                             r.low .unwrap_or_default() .into(),
                         ).map_err(A::Error::custom)?
                     },
+                    Content::Number(NumberContent::I8(number_content::I8::Range(r))) => {
+                        if r.high.is_none() {
+                            return Err(A::Error::custom("missing high value for array length range"));
+                        }
+
+                        is_positive(
+                            r.low .unwrap_or_default() .into(),
+                        ).map_err(A::Error::custom)?
+                    },
                     Content::SameAs(_) => {},
                     Content::Null(_) => return Err(de::Error::custom("array length is missing. Try adding '\"length\": [number]' to the array type where '[number]' is a positive integer")),
                     Content::Empty(_) => return Err(de::Error::custom("array length is not a constant or number type. Try replacing the '\"length\": {}' with '\"length\": [number]' where '[number]' is a positive integer")),
