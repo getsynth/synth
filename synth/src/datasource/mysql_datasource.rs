@@ -88,7 +88,7 @@ impl SqlxDataSource for MySqlDataSource {
 
     fn decode_to_content(&self, column_info: &ColumnInfo) -> Result<Content> {
         let content = match column_info.data_type.to_lowercase().as_str() {
-            "char" | "varchar" | "text" | "binary" | "varbinary" | "enum" | "set" | "mediumtext" => {
+            "char" | "varchar" | "text" | "binary" | "varbinary" | "enum" | "set" | "mediumtext" | "blob" => {
                 let pattern = "[a-zA-Z0-9]{0, {}}".replace(
                     "{}",
                     &format!("{}", column_info.character_maximum_length.unwrap_or(1)),
