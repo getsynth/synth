@@ -10,7 +10,7 @@ use rust_decimal::Decimal;
 use sqlx::mysql::{MySqlColumn, MySqlPoolOptions, MySqlRow};
 use sqlx::{Column, MySql, Pool, Row, TypeInfo};
 use std::collections::BTreeMap;
-use synth_core::schema::number_content::{F64, I8, I16, I32, I64, U64};
+use synth_core::schema::number_content::{F64, I16, I32, I64, I8, U64};
 use synth_core::schema::{
     ChronoValueType, DateTimeContent, NumberContent, RangeStep, RegexContent, StringContent,
 };
@@ -88,7 +88,8 @@ impl SqlxDataSource for MySqlDataSource {
 
     fn decode_to_content(&self, column_info: &ColumnInfo) -> Result<Content> {
         let content = match column_info.data_type.to_lowercase().as_str() {
-            "char" | "varchar" | "text" | "binary" | "varbinary" | "enum" | "set" | "mediumtext" | "blob" => {
+            "char" | "varchar" | "text" | "binary" | "varbinary" | "enum" | "set"
+            | "mediumtext" | "blob" => {
                 let pattern = "[a-zA-Z0-9]{0, {}}".replace(
                     "{}",
                     &format!("{}", column_info.character_maximum_length.unwrap_or(1)),
@@ -97,18 +98,12 @@ impl SqlxDataSource for MySqlDataSource {
                     RegexContent::pattern(pattern).context("pattern will always compile")?,
                 ))
             }
-            "int" | "integer" | "mediumint"  => {
+            "int" | "integer" | "mediumint" => {
                 Content::Number(NumberContent::I32(I32::Range(RangeStep::default())))
             }
-            "tinyint" => {
-                Content::Number(NumberContent::I8(I8::Range(RangeStep::default())))
-            }
-            "smallint" => {
-                Content::Number(NumberContent::I16(I16::Range(RangeStep::default())))
-            }
-            "bigint" => {
-                Content::Number(NumberContent::I64(I64::Range(RangeStep::default())))
-            }
+            "tinyint" => Content::Number(NumberContent::I8(I8::Range(RangeStep::default()))),
+            "smallint" => Content::Number(NumberContent::I16(I16::Range(RangeStep::default()))),
+            "bigint" => Content::Number(NumberContent::I64(I64::Range(RangeStep::default()))),
             "serial" => Content::Number(NumberContent::U64(U64::Range(RangeStep::default()))),
             "float" | "double" | "numeric" | "decimal" => {
                 Content::Number(NumberContent::F64(F64::Range(RangeStep::default())))
