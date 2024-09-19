@@ -9,8 +9,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-#SYNTH="synth"
-SYNTH="/Users/tomgoren/tmp/synth/target/debug/synth"
+SYNTH="synth"
 [ "${CI-false}" == "true" ] || SYNTH="cargo run --quiet --bin synth"
 
 ERROR='\033[0;31m'
