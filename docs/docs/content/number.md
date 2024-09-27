@@ -1,11 +1,12 @@
-Synth's `number` type allows for generating fixed-width numbers. 
+Synth's `number` type allows for generating fixed-width numbers.
 
-### Parameters 
+### Parameters
 
 #### `subtype`
+
 All the variants of `number` accept an optional `"subtype"` field to specify
 the width and primitive kind of the values generated. The value of `"subtype"`,
-if specified, must be one of `u64`, `i64`, `f64`, `u32`, `i32`, `f32`.
+if specified, must be one of `u64`, `i64`, `f64`, `u32`, `i32`, `f32`, `i8`.
 
 #### Example
 
@@ -32,6 +33,7 @@ will have different default behavior based on the value of `"subtype"`.
 - For float subtypes (`f32`, `f64`): `number` will default to generating from the semi-open interval `[0, 1)`.
 
 #### Example
+
 ```json synth
 {
   "type": "number",
@@ -40,6 +42,7 @@ will have different default behavior based on the value of `"subtype"`.
 ```
 
 #### Example
+
 ```json synth
 {
   "type": "number",
@@ -199,3 +202,4 @@ Synth currently supports `u64` ids.
   }
 }
 ```
+
