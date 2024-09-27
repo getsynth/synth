@@ -28,6 +28,14 @@ jobs:
         with:
           components: clippy
       - run: cargo clippy --tests --all-targets -- -D warnings
+  telemetry_test:     
+    runs-on: ubuntu-latest     
+    steps:     
+      - uses: actions/checkout@v2     
+      - uses: actions-rs/toolchain@v1     
+        with:     
+          toolchain: nightly-2022-08-01     
+      - run: cargo install --locked --debug --path=synth --features = telemetry           
   fmt_test:
     runs-on: ubuntu-latest
     steps:
