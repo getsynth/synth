@@ -21,12 +21,14 @@ use synth_core::{Content, Value};
 pub struct PostgresConnectParams {
     pub(crate) uri: String,
     pub(crate) schema: Option<String>,
+    pub(crate) concurrency: usize,
 }
 
 pub struct PostgresDataSource {
     pool: Pool<Postgres>,
     single_thread_pool: Pool<Postgres>,
     schema: String, // consider adding a type schema
+    concurrency: usize,
 }
 
 #[async_trait]
@@ -42,7 +44,7 @@ impl DataSource for PostgresDataSource {
 
             let mut arc = Arc::new(schema.clone());
             let pool = PgPoolOptions::new()
-                .max_connections(3) //TODO expose this as a user config?
+                .max_connections(connect_params.concurrency.try_into().unwrap())
                 .after_connect(move |conn, _meta| {
                     let schema = arc.clone();
                     Box::pin(async move {
@@ -76,6 +78,7 @@ impl DataSource for PostgresDataSource {
                 pool,
                 single_thread_pool,
                 schema,
+                concurrency: connect_params.concurrency,
             })
         })
     }
@@ -118,6 +121,19 @@ impl SqlxDataSource for PostgresDataSource {
     type Connection = sqlx::postgres::PgConnection;
 
     const IDENTIFIER_QUOTE: char = '\"';
+
+    fn clone(&self) -> Self {
+        Self {
+            pool: Pool::clone(&self.pool),
+            single_thread_pool: Pool::clone(&self.single_thread_pool),
+            schema: self.schema.clone(),
+            concurrency: self.concurrency,
+        }
+    }
+
+    fn get_concurrency(&self) -> usize {
+        self.concurrency
+    }
 
     fn get_pool(&self) -> Pool<Self::DB> {
         Pool::clone(&self.single_thread_pool)

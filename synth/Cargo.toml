@@ -51,6 +51,7 @@ strsim = "0.10.0"
 
 async-std = { version = "1.12", features = [ "attributes", "unstable" ] }
 async-trait = "0.1.50"
+async-lock = "2.6"
 futures = "0.3.15"
 
 fs2 = "0.4.3"

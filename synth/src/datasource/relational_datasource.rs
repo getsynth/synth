@@ -1,11 +1,14 @@
 use crate::datasource::DataSource;
 use anyhow::Result;
+use async_lock::Semaphore;
+use async_std::task;
 use async_trait::async_trait;
 use beau_collector::BeauCollector;
 use futures::future::join_all;
 use sqlx::{
     query::Query, Arguments, Connection, Database, Encode, Executor, IntoArguments, Pool, Type,
 };
+use std::sync::Arc;
 use synth_core::{Content, Value};
 use synth_gen::value::Number;
 
@@ -52,11 +55,16 @@ pub trait SqlxDataSource: DataSource {
 
     const IDENTIFIER_QUOTE: char;
 
+    fn clone(&self) -> Self;
+
     /// Gets a pool to execute queries with
     fn get_pool(&self) -> Pool<Self::DB>;
 
     /// Gets a multithread pool to execute queries with
     fn get_multithread_pool(&self) -> Pool<Self::DB>;
+
+    /// Get the maximum concurrency for the data source
+    fn get_concurrency(&self) -> usize;
 
     /// Prepare a single query with data source specifics
     fn query<'q>(&self, query: &'q str) -> Query<'q, Self::DB, Self::Arguments> {
@@ -117,8 +125,8 @@ pub trait SqlxDataSource: DataSource {
     ) -> Result<<Self::DB as Database>::QueryResult>
     where
         for<'c> &'c mut Self::Connection: Executor<'c, Database = Self::DB>,
-        Value: Type<Self::DB>,
-        for<'d> Value: Encode<'d, Self::DB>,
+        Value: Type<Self::DB> + Send + Sync,
+        for<'d> Value: Encode<'d, Self::DB> + Send + Sync,
     {
         let mut query = sqlx::query::<Self::DB>(query.as_str());
 
@@ -132,7 +140,7 @@ pub trait SqlxDataSource: DataSource {
     }
 }
 
-pub async fn insert_relational_data<T: SqlxDataSource + Sync>(
+pub async fn insert_relational_data<T: SqlxDataSource + Sync + Send + 'static>(
     datasource: &T,
     collection_name: &str,
     collection: &[Value],
@@ -146,6 +154,7 @@ where
     for<'d> Value: Encode<'d, T::DB>,
 {
     let batch_size = DEFAULT_INSERT_BATCH_SIZE;
+    let max_concurrency = datasource.get_concurrency();
 
     if collection.is_empty() {
         println!("Collection {collection_name} generated 0 values. Skipping insertion...",);
@@ -208,9 +217,19 @@ where
         .collect::<Vec<String>>()
         .join(",");
 
-    let mut futures = Vec::with_capacity(collection.len());
+    let collection_chunks = collection.chunks(batch_size);
+    let mut futures = Vec::with_capacity(collection_chunks.len());
 
-    for rows in collection.chunks(batch_size) {
+    info!(
+        "Inserting {} rows for {}...",
+        collection.len(),
+        collection_name
+    );
+
+    let semaphore = Arc::new(Semaphore::new(max_concurrency));
+    for rows in collection_chunks {
+        let permit = semaphore.clone().acquire_arc().await;
+
         let table_name = datasource.get_table_name_for_insert(collection_name);
         let mut query = format!("INSERT INTO {table_name} ({column_names}) VALUES \n");
 
@@ -233,7 +252,13 @@ where
                 query.push_str(",\n");
             }
         }
-        let future = datasource.execute_query(query, query_params);
+        let datasource = datasource.clone();
+        let future = task::spawn(async move {
+            let result = datasource.execute_query(query, query_params).await;
+            drop(permit);
+            result
+        });
+
         futures.push(future);
     }
 

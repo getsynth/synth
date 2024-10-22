@@ -16,6 +16,7 @@ impl Compile for DatasourceContent {
         let params = DataSourceParams {
             uri: URI::try_from(self.path.as_str())?,
             schema: None,
+            concurrency: 1,
         };
         let iter = get_iter(params).map(|i| -> Box<dyn Iterator<Item = Value>> {
             if !self.cycle {

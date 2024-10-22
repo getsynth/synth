@@ -63,12 +63,15 @@ where
             "postgres" | "postgresql" => Box::new(PostgresExportStrategy {
                 uri_string: params.uri.to_string(),
                 schema: params.schema,
+                concurrency: params.concurrency,
             }),
             "mongodb" => Box::new(MongoExportStrategy {
                 uri_string: params.uri.to_string(),
+                concurrency: params.concurrency,
             }),
             "mysql" | "mariadb" => Box::new(MySqlExportStrategy {
                 uri_string: params.uri.to_string(),
+                concurrency: params.concurrency,
             }),
             "json" => {
                 if params.uri.path() == "" {

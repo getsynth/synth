@@ -20,6 +20,7 @@ use synth_core::{Content, Namespace, Value};
 #[derive(Clone, Debug)]
 pub struct MongoExportStrategy {
     pub uri_string: String,
+    pub concurrency: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -152,7 +153,12 @@ fn bson_to_content(bson: &Bson) -> Content {
 
 impl ExportStrategy for MongoExportStrategy {
     fn export(&self, _namespace: Namespace, sample: SamplerOutput) -> Result<()> {
-        let mut client = Client::with_uri_str(&self.uri_string)?;
+        let mut client_options = ClientOptions::parse(&self.uri_string)?;
+        client_options.max_pool_size = Some(self.concurrency.try_into().unwrap());
+
+        info!("Connecting to database at {} ...", &self.uri_string);
+
+        let mut client = Client::with_options(client_options)?;
 
         match sample {
             SamplerOutput::Collection(name, value) => {

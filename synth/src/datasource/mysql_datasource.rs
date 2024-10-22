@@ -22,22 +22,31 @@ use synth_gen::prelude::*;
 /// - MySql aliases bool and boolean data types as tinyint. We currently define all tinyint as i8.
 ///   Ideally, the user can define a way to force certain fields as bool rather than i8.
 
+pub struct MySqlConnectParams {
+    pub(crate) uri: String,
+    pub(crate) concurrency: usize,
+}
+
 pub struct MySqlDataSource {
     pool: Pool<MySql>,
+    concurrency: usize,
 }
 
 #[async_trait]
 impl DataSource for MySqlDataSource {
-    type ConnectParams = String;
+    type ConnectParams = MySqlConnectParams;
 
     fn new(connect_params: &Self::ConnectParams) -> Result<Self> {
         task::block_on(async {
             let pool = MySqlPoolOptions::new()
-                .max_connections(3) //TODO expose this as a user config?
-                .connect(connect_params.as_str())
+                .max_connections(connect_params.concurrency.try_into().unwrap())
+                .connect(connect_params.uri.as_str())
                 .await?;
 
-            Ok::<Self, anyhow::Error>(MySqlDataSource { pool })
+            Ok::<Self, anyhow::Error>(MySqlDataSource {
+                pool,
+                concurrency: connect_params.concurrency,
+            })
         })
     }
 
@@ -52,6 +61,17 @@ impl SqlxDataSource for MySqlDataSource {
     type Connection = sqlx::mysql::MySqlConnection;
 
     const IDENTIFIER_QUOTE: char = '`';
+
+    fn clone(&self) -> Self {
+        Self {
+            pool: Pool::clone(&self.pool),
+            concurrency: self.concurrency,
+        }
+    }
+
+    fn get_concurrency(&self) -> usize {
+        self.concurrency
+    }
 
     fn get_pool(&self) -> Pool<Self::DB> {
         Pool::clone(&self.pool)

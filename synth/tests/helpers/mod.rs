@@ -16,6 +16,7 @@ pub async fn generate_scenario(namespace: &str, scenario: Option<String>) -> Res
         seed: Some(5),
         size: 10,
         to: "json:".to_string(),
+        concurrency: 3,
     }))
     .await
 }

@@ -11,6 +11,7 @@ use synth_core::schema::Namespace;
 pub struct PostgresExportStrategy {
     pub uri_string: String,
     pub schema: Option<String>,
+    pub concurrency: usize,
 }
 
 impl ExportStrategy for PostgresExportStrategy {
@@ -18,6 +19,7 @@ impl ExportStrategy for PostgresExportStrategy {
         let connect_params = PostgresConnectParams {
             uri: self.uri_string.clone(),
             schema: self.schema.clone(),
+            concurrency: self.concurrency,
         };
 
         let datasource = PostgresDataSource::new(&connect_params)?;
@@ -37,6 +39,7 @@ impl ImportStrategy for PostgresImportStrategy {
         let connect_params = PostgresConnectParams {
             uri: self.uri_string.clone(),
             schema: self.schema.clone(),
+            concurrency: 1,
         };
 
         let datasource = PostgresDataSource::new(&connect_params)?;

@@ -123,6 +123,7 @@ impl<'w> Cli {
             uri: URI::try_from(cmd.from.as_str())
                 .with_context(|| format!("Parsing import URI '{}'", cmd.from))?,
             schema: cmd.schema,
+            concurrency: 1,
         }
         .try_into()?;
 
@@ -176,6 +177,7 @@ impl<'w> Cli {
             uri: URI::try_from(cmd.to.as_str())
                 .with_context(|| format!("Parsing generation URI '{}'", cmd.to))?,
             schema: cmd.schema,
+            concurrency: cmd.concurrency,
         }
         .try_into()?;
 
@@ -289,6 +291,13 @@ pub struct GenerateCommand {
     )]
     #[serde(skip)]
     pub schema: Option<String>,
+    #[structopt(
+        long,
+        help = "The maximum number of concurrent tasks writing to the database.",
+        default_value = "3"
+    )]
+    #[serde(skip)]
+    pub concurrency: usize,
 }
 
 #[derive(StructOpt, Serialize)]
