@@ -14,7 +14,8 @@ use std::collections::BTreeMap;
 use synth_core::schema::number_content::{F32, F64, I16, I32, I64};
 use synth_core::schema::{
     ArrayContent, BoolContent, Categorical, ChronoValue, ChronoValueAndFormat, ChronoValueType,
-    DateTimeContent, NumberContent, ObjectContent, RangeStep, RegexContent, StringContent, Uuid,
+    DateTimeContent, FakerContent, NumberContent, ObjectContent, RangeStep, RegexContent,
+    StringContent, Uuid,
 };
 use synth_core::{Content, Value};
 
@@ -232,6 +233,14 @@ impl SqlxDataSource for PostgresDataSource {
                 fields: BTreeMap::new(),
             }),
             "uuid" => Content::String(StringContent::Uuid(Uuid)),
+            "inet" => {
+                let arg: synth_core::graph::string::faker::FakerArgs = Default::default();
+                Content::String(StringContent::Faker(FakerContent {
+                    generator: "ip".to_string(),
+                    locales: Vec::new(),
+                    args: arg,
+                }))
+            }
             _ => {
                 if let Some(data_type) = column_info.data_type.strip_prefix('_') {
                     let mut column_info = column_info.clone();
